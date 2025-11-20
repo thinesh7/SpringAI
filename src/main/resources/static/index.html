@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<title>Chat App</title>
+	<script src="https://cdn.tailwindcss.com"></script>
+	<style>
+		body {
+			background-color: #f3f4f6;
+			margin: 0;
+			font-family: sans-serif;
+			display: flex;
+			justify-content: center;
+			align-items: center;
+			height: 100vh;
+		}
+
+		#chatContainer {
+			display: flex;
+			flex-direction: column;
+			height: 80vh;
+			width: 90%;
+			max-width: 900px;
+			padding: 1.5rem;
+			box-sizing: border-box;
+			background-color: white;
+			border-radius: 1rem;
+			box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+		}
+
+		#chatBox {
+			flex: 1;
+			overflow-y: auto;
+			background-color: #fefefe;
+			padding: 1rem;
+			border-radius: 0.5rem;
+			margin-bottom: 1rem;
+			border: 1px solid #e5e7eb;
+		}
+
+		.chat-message {
+			padding: 0.5rem 1rem;
+			border-radius: 0.5rem;
+			margin-bottom: 0.5rem;
+			max-width: 75%;
+			word-wrap: break-word;
+		}
+
+		.user-message {
+			background-color: #3b82f6;
+			color: white;
+			margin-left: auto;
+		}
+
+		.bot-message {
+			background-color: #e5e7eb;
+			color: black;
+			margin-right: auto;
+		}
+
+		#inputContainer {
+			display: flex;
+			width: 100%;
+		}
+
+		#message {
+			flex: 1;
+			padding: 0.5rem;
+			border: 1px solid #ccc;
+			border-radius: 0.5rem 0 0 0.5rem;
+			outline: none;
+		}
+
+		#sendBtn {
+			background-color: #3b82f6;
+			color: white;
+			padding: 0.5rem 1rem;
+			border-radius: 0 0.5rem 0.5rem 0;
+			border: none;
+		}
+	</style>
+</head>
+
+<body>
+
+	<div id="chatContainer">
+		<h1 class="text-3xl font-bold text-center mb-4">Chat App</h1>
+
+		<div id="chatBox"></div>
+
+		<div id="inputContainer">
+			<input id="message" type="text" placeholder="Type a message...">
+			<button id="sendBtn">Send</button>
+		</div>
+	</div>
+
+	<script>
+		const chatBox = document.getElementById('chatBox');
+		const sendBtn = document.getElementById('sendBtn');
+		const messageInput = document.getElementById('message');
+		let loadingCounter = 0; // unique ID counter for loading messages
+
+		function appendMessage(message, isUser = true, id = null) {
+			const div = document.createElement('div');
+			div.classList.add('chat-message', isUser ? 'user-message' : 'bot-message');
+			div.textContent = message;
+			if (id) div.id = id;
+			chatBox.appendChild(div);
+			chatBox.scrollTop = chatBox.scrollHeight;
+		}
+
+		async function sendMessage() {
+			const prompt = messageInput.value.trim();
+			if (!prompt) return;
+
+			appendMessage(prompt, true);
+			messageInput.value = '';
+
+			const loadingId = 'loadingMsg' + loadingCounter++;
+			appendMessage('...', false, loadingId);
+
+			try {
+				const url = new URL('http://localhost:8080/api/payments/chat');
+				url.searchParams.append('prompt', prompt);
+				const response = await fetch(url, { method: 'GET' });
+				if (!response.ok) throw new Error(`Server error: ${response.status}`);
+				const data = await response.json();
+
+				const loadingDiv = document.getElementById(loadingId);
+				if (loadingDiv) loadingDiv.textContent = data.response || "No response from server";
+			} catch (err) {
+				console.error(err);
+				const loadingDiv = document.getElementById(loadingId);
+				if (loadingDiv) loadingDiv.textContent = "Error connecting to server.";
+			}
+		}
+
+		sendBtn.addEventListener('click', sendMessage);
+		messageInput.addEventListener('keypress', (e) => {
+			if (e.key === 'Enter') sendMessage();
+		});
+	</script>
+</body>
+</html>
